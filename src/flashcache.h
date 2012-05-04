@@ -286,7 +286,9 @@ struct cache_c {
 	int sysctl_fallow_clean_speed;
 	int sysctl_fallow_delay;
 	int sysctl_skip_seq_thresh_kb;
-
+#ifdef FLASHCACHE_BYPASS	       
+        int bypass;
+#endif
 	/* Sequential I/O spotter */
 	struct sequential_io	seq_recent_ios[SEQUENTIAL_TRACKER_QUEUE_DEPTH];
 	struct sequential_io	*seq_io_head;
