@@ -334,12 +334,51 @@ flashcache_writeback_md_store(struct cache_c *dmc)
 }
 
 static int 
-flashcache_writethrough_create(struct cache_c *dmc)
+flashcache_writethrough_create(struct cache_c *dmc, int force)
 {
 	sector_t cache_size, dev_size;
 	sector_t order;
 	int i;
+        struct flash_superblock *header;
+	int error;
+	int superblock_sector;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26)
+        struct io_region where;
+#else
+        struct dm_io_region where;
+#endif
+	DMINFO("flashcache_writethrough_create: force=%d", force);
+	/* use dmc->md_block_size for the superblock size (in sectors) */
+	dmc->md_block_size = (sizeof(struct flash_superblock))/512 + 1;
+	DMINFO("flashcache_writethrough_create: will reserve %d sectors for the superblock", dmc->md_block_size);
+        header = (struct flash_superblock *)vmalloc(MD_BLOCK_BYTES(dmc));
+        if (!header) {
+                DMERR("flashcache_writethrough_create: Unable to allocate sector");
+                return 1;
+        }
+     
+        where.bdev = dmc->cache_dev->bdev;
+	superblock_sector = dmc->size - dmc->md_block_size; 
+        where.sector = superblock_sector;
+        where.count = dmc->md_block_size;
+        error = flashcache_dm_io_sync_vm(dmc, &where, READ, header);
+        if (error) {
+                vfree((void *)header);
+                DMERR("flashcache_writeback_create: Could not read cache superblock %lu error %d !",
+                      where.sector, error);
+                return 1;
+        }
+
+        if (!force && (strncmp(header->cache_devname, dmc->dm_vdevname, DEV_PATHLEN) != 0)) {
+		DMERR("flashcache_writethrough_create: Existing cache name (%s) on superblock differs from wanted cache name (%s), exiting!",
+		      header->cache_devname, dmc->dm_vdevname);
+        	vfree((void *)header);
+                return 1;
+        }
 	
+	/* protect the superblock */
+	dmc->size -= dmc->md_block_size;
+
 	/* 
 	 * Convert size (in sectors) to blocks.
 	 * Then round size (in blocks now) down to a multiple of associativity 
@@ -378,6 +417,25 @@ flashcache_writethrough_create(struct cache_c *dmc)
 		dmc->cache[i].nr_queued = 0;
 	}
 	dmc->md_blocks = 0;
+
+        /* Write the header */
+        strncpy(header->cache_devname, dmc->dm_vdevname, DEV_PATHLEN);
+        where.sector = superblock_sector;
+        where.count = dmc->md_block_size;
+ 
+        printk("flashcache-dbg: cachedev check - %s %s", 
+               header->cache_devname, dmc->dm_vdevname);
+ 
+        error = flashcache_dm_io_sync_vm(dmc, &where, WRITE, header);
+        if (error) {
+               vfree((void *)header);
+               vfree(dmc->cache);
+               DMERR("flashcache_writeback_create: Could not write cache superblock %lu error %d !",
+               where.sector, error);
+              return 1;
+        }
+        vfree((void *)header);
+
 	return 0;
 }
 
@@ -910,34 +968,37 @@ flashcache_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		goto bad3;
 	}
 	
-	/* 
-	 * XXX - Persistence is totally ignored for write through and write around.
-	 * Maybe this should really be moved to the end of the param list ?
-	 */
-	if (dmc->cache_mode == FLASHCACHE_WRITE_BACK) {
-		if (argc >= 5) {
-			if (sscanf(argv[4], "%u", &persistence) != 1) {
-				ti->error = "flashcache: sscanf failed, invalid cache persistence";
-				r = -EINVAL;
-				goto bad3;
-			}
-			if (persistence < CACHE_RELOAD || persistence > CACHE_FORCECREATE) {
-				DMERR("persistence = %d", persistence);
-				ti->error = "flashcache: Invalid cache persistence";
-				r = -EINVAL;
-				goto bad3;
-			}			
+	if (argc >= 5) {
+		if (sscanf(argv[4], "%u", &persistence) != 1) {
+			ti->error = "flashcache: sscanf failed, invalid cache persistence";
+			r = -EINVAL;
+			goto bad3;
 		}
+		if (persistence < CACHE_RELOAD || persistence > CACHE_FORCECREATE) {
+			DMERR("persistence = %d", persistence);
+			ti->error = "flashcache: Invalid cache persistence";
+			r = -EINVAL;
+			goto bad3;
+		}			
+	}
+	if (dmc->cache_mode == FLASHCACHE_WRITE_BACK) {
 		if (persistence == CACHE_RELOAD) {
 			if (flashcache_writeback_load(dmc)) {
 				ti->error = "flashcache: Cache reload failed";
 				r = -EINVAL;
 				goto bad3;
 			}
-			goto init; /* Skip reading cache parameters from command line */
 		}
-	} else
+		goto init; /* Skip reading cache parameters from command line */
+	} else if (dmc->cache_mode == FLASHCACHE_WRITE_THROUGH) {
+		if ((persistence != CACHE_CREATE) && (persistence != CACHE_FORCECREATE)) {
+			ti->error = "flashcache: Invalid cache persistence (writethrough)";
+			r = -EINVAL;
+			goto bad3;
+		}
+	} else { 	
 		persistence = CACHE_CREATE;
+	}	
 
 	if (argc >= 6) {
 		if (sscanf(argv[5], "%u", &dmc->block_size) != 1) {
@@ -1034,8 +1095,25 @@ flashcache_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 				goto bad3;
 			}
 		}
-	} else
-		flashcache_writethrough_create(dmc);
+	} else { 
+		if (persistence == CACHE_CREATE) {
+			if (flashcache_writethrough_create(dmc, 0)) {
+				ti->error = "flashcache: Cache Create Failed (writethrough)";
+                        	r = -EINVAL;
+                        	goto bad3;
+			}
+		} else if (persistence == CACHE_FORCECREATE) {
+			if (flashcache_writethrough_create(dmc, 1)) {
+				ti->error = "flashcache: Cache Force Create Failed (writethrough)";
+                        	r = -EINVAL;
+                        	goto bad3;
+			}
+		} else {
+				ti->error = "flashcache: Incorrect persistence (writethrough)";
+                        	r = -EINVAL;
+                        	goto bad3;
+		}
+	}
 
 init:
 	dmc->num_sets = dmc->size >> dmc->assoc_shift;
