@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2010, Facebook, Inc.
  * All rights reserved.
@@ -39,6 +40,7 @@
 #include <string.h>
 #include <linux/types.h>
 #include <flashcache.h>
+
 
 void
 usage(char *pname)
@@ -201,6 +203,7 @@ main(int argc, char **argv)
 	int ret;
 	int cache_mode = -1;
 	char *cache_mode_str;
+        int persistence = 2;
 	
 	pname = argv[0];
 	while ((c = getopt(argc, argv, "fs:b:m:va:p:")) != -1) {
@@ -287,6 +290,27 @@ main(int argc, char **argv)
 			pname, ssd_devname);
 		exit(1);
 	}
+	/* check for a writethrough superblock */
+	if (cache_mode == FLASHCACHE_WRITE_THROUGH) {
+		long off=0;
+		int i;
+		int sb_sectors;
+			
+		sb_sectors =(sizeof(struct flash_superblock))/512 + 1;
+		off = lseek(cache_fd, sb_sectors * -512, SEEK_END);
+		if (read(cache_fd, buf, 512) < 0) {
+                	fprintf(stderr, "Cannot read flashcache write-through superblock %s\n",
+                               	 ssd_devname);
+                       	exit(1);
+         	}
+		fprintf(stderr, "Current flashcache name is %s (from superblock)\n", sb->cache_devname);
+         	if (!force && (strncmp(sb->cache_devname, cachedev, DEV_PATHLEN) != 0)) {
+                	fprintf(stderr, "%s: Valid Flashcache already exists on %s: \"%s\" (differs from wanted \"%s\")\n\n",
+                       		pname, ssd_devname, sb->cache_devname, cachedev);
+               		exit(1);
+         	}
+	}
+
 	disk_fd = open(disk_devname, O_RDONLY);
 	if (disk_fd < 0) {
 		fprintf(stderr, "%s: Failed to open %s\n", 
@@ -298,6 +322,7 @@ main(int argc, char **argv)
 			pname, ssd_devname);
 		exit(1);		
 	}
+	fprintf(stderr, "size: %llu\n", cache_devsize); 
 	if (ioctl(disk_fd, BLKGETSIZE, &disk_devsize) < 0) {
 		fprintf(stderr, "%s: Cannot get disk size %s\n", 
 			pname, disk_devname);
@@ -342,9 +367,12 @@ main(int argc, char **argv)
 			ssd_devname, disk_devname);
 		check_sure();
 	}
-	sprintf(dmsetup_cmd, "echo 0 %lu flashcache %s %s %s %d 2 %lu %lu %lu %lu"
+	
+	if (force) { persistence = 3; }
+
+	sprintf(dmsetup_cmd, "echo 0 %lu flashcache %s %s %s %d %d %lu %lu %lu %lu"
 		" | dmsetup create %s",
-		disk_devsize, disk_devname, ssd_devname, cachedev, cache_mode, block_size, 
+		disk_devsize, disk_devname, ssd_devname, cachedev, cache_mode, persistence, block_size, 
 		cache_size, associativity, md_block_size,
 		cachedev);
 

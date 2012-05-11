@@ -76,6 +76,7 @@
  */
 
 #define FLASHCACHE_SW_VERSION COMMIT_REV 
+
 char *flashcache_sw_version = FLASHCACHE_SW_VERSION;
 
 static void flashcache_read_miss(struct cache_c *dmc, struct bio* bio,
