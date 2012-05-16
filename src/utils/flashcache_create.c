@@ -41,6 +41,7 @@
 #include <linux/types.h>
 #include <flashcache.h>
 
+
 void
 usage(char *pname)
 {
@@ -298,13 +299,13 @@ main(int argc, char **argv)
 		sb_sectors =(sizeof(struct flash_superblock))/512 + 1;
 		off = lseek(cache_fd, sb_sectors * -512, SEEK_END);
 		if (read(cache_fd, buf, 512) < 0) {
-                	fprintf(stderr, "Cannot read Flashcache superblock %s\n",
+                	fprintf(stderr, "Cannot read flashcache write-through superblock %s\n",
                                	 ssd_devname);
                        	exit(1);
          	}
 		fprintf(stderr, "Current flashcache name is %s (from superblock)\n", sb->cache_devname);
          	if (!force && (strncmp(sb->cache_devname, cachedev, DEV_PATHLEN) != 0)) {
-                	fprintf(stderr, "%s: Valid Flashcache already exists on %s: %s (differs from wanted %s)\n\n",
+                	fprintf(stderr, "%s: Valid Flashcache already exists on %s: \"%s\" (differs from wanted \"%s\")\n\n",
                        		pname, ssd_devname, sb->cache_devname, cachedev);
                		exit(1);
          	}

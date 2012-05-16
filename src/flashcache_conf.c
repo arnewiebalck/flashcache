@@ -375,7 +375,7 @@ flashcache_writethrough_create(struct cache_c *dmc, int force)
         	vfree((void *)header);
                 return 1;
         }
-	
+
 	/* protect the superblock */
 	dmc->size -= dmc->md_block_size;
 
@@ -390,7 +390,7 @@ flashcache_writethrough_create(struct cache_c *dmc, int force)
 	dev_size = to_sector(dmc->cache_dev->bdev->bd_inode->i_size);
 	cache_size = dmc->size * dmc->block_size;
 	if (cache_size > dev_size) {
-		DMERR("Requested cache size exeeds the cache device's capacity" \
+		DMERR("flashcache_writethrough_create: Requested cache size exeeds the cache device's capacity" \
 		      "(%lu>%lu)",
   		      cache_size, dev_size);
 		return 1;
@@ -491,7 +491,7 @@ flashcache_writeback_create(struct cache_c *dmc, int force)
 	dev_size = to_sector(dmc->cache_dev->bdev->bd_inode->i_size);
 	cache_size = dmc->md_blocks * MD_SECTORS_PER_BLOCK(dmc) + (dmc->size * dmc->block_size);
 	if (cache_size > dev_size) {
-		DMERR("Requested cache size exceeds the cache device's capacity" \
+		DMERR("flashcache_writeback_create: Requested cache size exceeds the cache device's capacity" \
 		      "(%lu>%lu)",
   		      cache_size, dev_size);
 		vfree((void *)header);
@@ -974,6 +974,7 @@ flashcache_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			r = -EINVAL;
 			goto bad3;
 		}
+		DMERR("persistence=%d", persistence);
 		if (persistence < CACHE_RELOAD || persistence > CACHE_FORCECREATE) {
 			DMERR("persistence = %d", persistence);
 			ti->error = "flashcache: Invalid cache persistence";
@@ -988,8 +989,8 @@ flashcache_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 				r = -EINVAL;
 				goto bad3;
 			}
+			goto init; /* Skip reading cache parameters from command line */
 		}
-		goto init; /* Skip reading cache parameters from command line */
 	} else if (dmc->cache_mode == FLASHCACHE_WRITE_THROUGH) {
 		if ((persistence != CACHE_CREATE) && (persistence != CACHE_FORCECREATE)) {
 			ti->error = "flashcache: Invalid cache persistence (writethrough)";
