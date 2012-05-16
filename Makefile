@@ -2,6 +2,8 @@ COMMIT_REV := $(shell git describe  --always --abbrev=12)
 KERNEL_TREE ?= /lib/modules/$(shell uname -r)/build
 export COMMIT_REV
 
+VERSION=1
+
 # Check for RHEL/CentOS
 RHEL5_VER ?= $(shell grep 5.[0-9] /etc/redhat-release)
 ifneq "$(RHEL5_VER)" ""
@@ -17,3 +19,6 @@ install:
 
 clean:
 	$(MAKE) -C src KERNEL_TREE=$(KERNEL_TREE) PWD=$(shell pwd)/src clean
+
+tarball:
+	tar cvfz flashcache.cern.$(VERSION).tar.gz *
