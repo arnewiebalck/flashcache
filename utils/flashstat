@@ -32,7 +32,8 @@ my %status;              # flashcache status info
 my $dev = "/dev/mapper/cachedev";
 my $flashcache_stats_old_version = "/proc/flashcache_stats"; # for old version, this path is right
 my $flashcache_stats_new_version;  # for new version, get path in get_sysctl()
-my $format_title = "%14s %7s %7s %7s %7s %7s %7s %7s %7s %7s %7s %7s %7s %6s %6s %6s\n";
+#my $format_title = "%14s %7s %7s %7s %7s %7s %7s %7s %7s %7s %7s %7s %7s %6s %6s %6s\n";
+my $format_title = "%14s %7s %7s %7s %7s %7s %7s %7s %7s %7s %7s %6s %6s\n";
 my $interval = 1;
 $interval = 5 if(-f $flashcache_stats_old_version); # for old version ,using dmsetup status, default interval set to 5s
 my $count = 0;
@@ -47,7 +48,8 @@ my $n = 0;
 while(1){
   if($n % 20 == 0){ # print title every 20 lines
     print YELLOW(), BOLD();
-    printf $format_title, "time", "read/s", "write/s", "diskr/s", "diskw/s", "ssdr/s", "ssdw/s", "uread/s", "uwrit/s", "metaw/s", "clean/s","repl/s","wrepl/s", "hit%", "whit%", "dwhit%";
+#    printf $format_title, "time", "read/s", "write/s", "diskr/s", "diskw/s", "ssdr/s", "ssdw/s", "uread/s", "uwrit/s", "metaw/s", "clean/s","repl/s","wrepl/s", "hit%", "whit%", "dwhit%";
+    printf $format_title, "time", "read/s", "write/s", "diskr/s", "diskw/s", "ssdr/s", "ssdw/s", "uread/s", "uwrit/s", "repl/s","wrepl/s", "rhit%", "whit%";
     print RESET();
   }
 
@@ -58,11 +60,12 @@ while(1){
   # calculate status per second
   foreach (keys(%status)){
     $result{$_} = ($status{$_} - $status_old{$_}) / ($interval + 0.00001); 
+#    print $_," ",$status{$_}," ",$status_old{$_}," ",$result{$_},"\n";
   }
   # calculate hit percent
   $result{read_hit_percent} = sprintf "%d", ($result{read_hits} * 100) / ($result{reads} + 0.0001);
   $result{write_hit_percent} = sprintf "%d",  ($result{write_hits} * 100)/ ($result{writes} + 0.0001);
-  $result{dirty_write_hit_percent} = sprintf "%d", ($result{dirty_write_hits} * 100) / ($result{writes} + 0.0001);
+  #$result{dirty_write_hit_percent} = sprintf "%d", ($result{dirty_write_hits} * 100) / ($result{writes} + 0.0001);
 
   # print value
   print YELLOW();
@@ -89,10 +92,10 @@ while(1){
   $result{uncached_writes} > 100 ? print RED() : print GREEN();
   printf "%7d ", $result{uncached_writes} and print RESET();
 
-  $result{metadata_ssd_writes} > 100 ? print RED() : print WHITE();
-  printf "%7d ", $result{metadata_ssd_writes} and print RESET();
-  $result{cleanings} > 100 ? print RED() : print WHITE();
-  printf "%7d ", $result{cleanings} and print RESET();
+  #$result{metadata_ssd_writes} > 100 ? print RED() : print WHITE();
+  #printf "%7d ", $result{metadata_ssd_writes} and print RESET();
+  #$result{cleanings} > 100 ? print RED() : print WHITE();
+  #printf "%7d ", $result{cleanings} and print RESET();
   $result{replacement} > 100 ? print RED() : print WHITE();
   printf "%7d ", $result{replacement} and print RESET();
   $result{write_replacement} > 100 ? print RED() : print WHITE();
@@ -102,8 +105,8 @@ while(1){
   printf "%6s ", $result{read_hit_percent}."|".$hit{read_hit_percent} and print RESET();
   $result{write_hit_percent} < 90 ? print RED() : print GREEN();
   printf "%6s ", $result{write_hit_percent}."|".$hit{write_hit_percent} and print RESET();
-  $result{dirty_write_hit_percent} < 90 ? print RED() : print GREEN();
-  printf "%6s ", $result{dirty_write_hit_percent}."|".$hit{dirty_write_hit_percent} and print RESET();
+  #$result{dirty_write_hit_percent} < 90 ? print RED() : print GREEN();
+  #printf "%6s ", $result{dirty_write_hit_percent}."|".$hit{dirty_write_hit_percent} and print RESET();
   print "\n";
   print RESET();
 
