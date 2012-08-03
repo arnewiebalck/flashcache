@@ -349,8 +349,7 @@ flashcache_writethrough_create(struct cache_c *dmc, int force)
 	DMINFO("flashcache_writethrough_create: force=%d", force);
 	/* use dmc->md_block_size for the superblock size (in sectors) */
 	dmc->md_block_size = (sizeof(struct flash_superblock))/512 + 1;
-	DMINFO("flashcache_writethrough_create: will reserve %d sectors for the superblock", dmc->md_block_size);
-        header = (struct flash_superblock *)vmalloc(MD_BLOCK_BYTES(dmc));
+	header = (struct flash_superblock *)vmalloc(MD_BLOCK_BYTES(dmc));
         if (!header) {
                 DMERR("flashcache_writethrough_create: Unable to allocate sector");
                 return 1;
@@ -973,7 +972,7 @@ flashcache_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		}
 		DMERR("persistence=%d", persistence);
 		if (persistence < CACHE_RELOAD || persistence > CACHE_FORCECREATE) {
-			DMERR("persistence = %d", persistence);
+			DMERR("persistence = %d (1 = CACHE_LOAD, 2 = CACHE_CREATE, 3 = CACHE_FORCECREATE)", persistence);
 			ti->error = "flashcache: Invalid cache persistence";
 			r = -EINVAL;
 			goto bad3;
