@@ -337,11 +337,10 @@ static int
 flashcache_writethrough_create(struct cache_c *dmc, int force)
 {
 	sector_t cache_size, dev_size;
-	sector_t order;
+	sector_t order, superblock_sector;
 	int i;
         struct flash_superblock *header;
 	int error;
-	int superblock_sector;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26)
         struct io_region where;
 #else
@@ -421,10 +420,8 @@ flashcache_writethrough_create(struct cache_c *dmc, int force)
         /* Write the header */
         strncpy(header->cache_devname, dmc->dm_vdevname, DEV_PATHLEN);
         where.sector = superblock_sector;
+	DMINFO("superblock will go to sector %lu\n", where.sector);
         where.count = dmc->md_block_size;
- 
-        printk("flashcache-dbg: cachedev check - %s %s", 
-               header->cache_devname, dmc->dm_vdevname);
  
         error = flashcache_dm_io_sync_vm(dmc, &where, WRITE, header);
         if (error) {
@@ -870,7 +867,7 @@ flashcache_clean_all_sets(struct work_struct *work)
 		flashcache_clean_set(dmc, i);
 }
 
-static int inline
+int inline 
 flashcache_get_dev(struct dm_target *ti, char *pth, struct dm_dev **dmd,
 		   char *dmc_dname, sector_t tilen)
 {

@@ -167,7 +167,7 @@ load_module(void)
 			fprintf(stderr, "version string \"%s\"\n", line);
 #ifdef COMMIT_REV
 		if (!strstr(line, COMMIT_REV)) {
-			fprintf(stderr, "Flashcache revision doesn't match tool revision.\n");
+			fprintf(stderr, "Flashcache revision doesn't match tool revision (COMMIT_REV: %s).\n", COMMIT_REV);
 			exit(1);
 		}
 #endif
