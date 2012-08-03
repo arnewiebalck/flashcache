@@ -55,6 +55,9 @@
 #include "flashcache.h"
 #include "flashcache_ioctl.h"
 
+extern int inline flashcache_get_dev(struct dm_target *, char *, struct dm_dev **dmd,
+                                     char *, sector_t);
+
 static int flashcache_find_pid_locked(struct cache_c *dmc, pid_t pid, 
 				      int which_list);
 static void flashcache_del_pid_locked(struct cache_c *dmc, pid_t pid, 
@@ -406,7 +409,6 @@ seq_io_move_to_lruhead(struct cache_c *dmc, struct sequential_io *seqio)
 	dmc->seq_io_head = seqio;
 }
        
-
 /* Look for and maybe skip sequential i/o.  
  *
  * Since          performance(SSD) >> performance(HDD) for random i/o,
@@ -498,6 +500,114 @@ out:
 	return skip;
 }
 
+int
+flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct flash_superblock sb) {
+
+	int i, r = -EINVAL;
+	sector_t cache_size = 0, order = 0, superblock_sector = 0, old_size = 0;
+	struct flash_superblock *header;
+	struct cacheblock *cb = NULL;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26)
+        struct io_region where;
+#else
+        struct dm_io_region where;
+#endif
+	/* set the cache into bypass mode */
+	DMINFO("flashcache_replace_cachedev: set %s into bypass mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
+	dmc->bypass_cache = 1;
+	
+	/* sleep 30 sec to let all pending IOs flow off */
+	DMINFO("flashcache_replace_cachedev: sleeping 30 secs to let IOs drain off ...");
+	ssleep(30);
+	DMINFO("flashcache_replace_cachedev: ... awake!");
+
+	/* replace the cache device */
+	DMINFO("flashcache_replace_cachedev: swapping cache devices (%s <-> %s)", dmc->cache_devname, sb.cache_devname);	
+	flashcache_dtr_procfs(dmc);
+	dm_put_device(ti, dmc->cache_dev);
+	if ((r = flashcache_get_dev(ti, sb.cache_devname, &dmc->cache_dev,
+                                    dmc->cache_devname, 0))) {
+                if (r == -EBUSY)
+                        ti->error = "flashcache: Cache device is busy, cannot create cache";
+                else
+                        ti->error = "flashcache: Cache device lookup failed";
+		return r;
+        }
+	flashcache_ctr_procfs(dmc);
+
+	/* get the new cache device size */
+	old_size = dmc->size;
+	dmc->size = to_sector(dmc->cache_dev->bdev->bd_inode->i_size);	
+
+	/* brand the new cache device */
+	dmc->md_block_size = (sizeof(struct flash_superblock))/512 + 1;
+        DMINFO("flashcache_replace_cachedev: will reserve %d sectors for the superblock", dmc->md_block_size);
+        header = (struct flash_superblock *)vmalloc(MD_BLOCK_BYTES(dmc));
+        if (!header) {
+                DMERR("flashcache_replace_cachedev: Unable to allocate sector");
+                return 1;
+        }	
+	where.bdev = dmc->cache_dev->bdev;
+        superblock_sector = dmc->size - dmc->md_block_size;
+        where.sector = superblock_sector;
+        where.count = dmc->md_block_size;
+
+        DMINFO("flashcache_replace_cachedev: superblock will go to sector %lu\n", where.sector);
+
+        strncpy(header->cache_devname, dmc->dm_vdevname, DEV_PATHLEN);
+        r = flashcache_dm_io_sync_vm(dmc, &where, WRITE, header);
+        if (r) {
+               vfree((void *)header);
+               vfree((void *)dmc->cache);
+               DMERR("flashcache_replace_cachedev: Could not write cache superblock %lu error %d !",
+               where.sector, r);
+              return 1;
+        }
+        vfree((void *)header);
+
+	/* handle new cache device size */
+        dmc->size -= dmc->md_block_size; /* for the superblock */
+        dmc->size /= dmc->block_size;    /* change from sectors to blocks */
+        dmc->size = (dmc->size / dmc->assoc) * dmc->assoc;
+        order = dmc->size * sizeof(struct cacheblock);
+	cache_size = dmc->size * dmc->block_size;	
+        DMINFO("flashcache_replace_cachedev: need %luKB (%luB per) mem for %lu-entry cache" \
+               "(capacity:%luMB, associativity:%u, block size:%u sectors(%uKB))",
+               order >> 10, sizeof(struct cacheblock), dmc->size,
+               cache_size >> (20-SECTOR_SHIFT), dmc->assoc, dmc->block_size,
+               dmc->block_size >> (10-SECTOR_SHIFT));
+	
+	/* (re-create and) initialize the cache structure */
+	if (dmc->size != old_size) {
+		DMINFO("flashcache_replace_cachedev: allocating cache structure");
+		cb = dmc->cache;
+		dmc->cache = (struct cacheblock *)vmalloc(order);
+        	if (!dmc->cache) {
+                	DMERR("flashcache_replace_cachedev: Unable to allocate cache blocks");
+                	return 1;
+        	}
+		vfree((void *)cb);
+	} else {
+		DMINFO("flashcache_replace_cachedev: re-using existing cache structure");
+	}
+
+        for (i = 0; i < dmc->size ; i++) {
+                dmc->cache[i].dbn = 0;
+#ifdef FLASHCACHE_DO_CHECKSUMS
+                dmc->cache[i].checksum = 0;
+#endif
+                dmc->cache[i].cache_state = INVALID;
+                dmc->cache[i].nr_queued = 0;
+        }
+        dmc->md_blocks = 0;
+
+	/* unset the bypass mode */
+	DMINFO("flashcache_replace_cachedev: set %s into cache mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
+	dmc->bypass_cache = 0;
+
+	return 0;
+}
+
 
 /*
  * Add/del pids whose IOs should be non-cacheable.
@@ -523,6 +633,7 @@ flashcache_ioctl(struct dm_target *ti, unsigned int cmd, unsigned long arg)
 	struct file fake_file = {};
 	struct dentry fake_dentry = {};
 	pid_t pid;
+        struct flash_superblock sb;
 
 	switch(cmd) {
 	case FLASHCACHEADDBLACKLIST:
@@ -551,6 +662,11 @@ flashcache_ioctl(struct dm_target *ti, unsigned int cmd, unsigned long arg)
 	case FLASHCACHEDELALLWHITELIST:
 		flashcache_del_all_pids(dmc, FLASHCACHE_WHITELIST, 0);
 		return 0;
+        case FLASHCACHEREPLACECACHEDEV:
+		if (copy_from_user(&sb, (struct flash_superblock *)arg, sizeof(struct flash_superblock)))
+                        return -EFAULT;
+                flashcache_replace_cachedev(ti, dmc, sb);
+                return 0;
 	default:
 		fake_file.f_mode = dmc->disk_dev->mode;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)

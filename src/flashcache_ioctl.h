@@ -36,6 +36,7 @@ enum {
 	FLASHCACHEADDWHITELIST_CMD,
 	FLASHCACHEDELWHITELIST_CMD,
 	FLASHCACHEDELWHITELISTALL_CMD,
+	FLASHCACHEREPLACECACHEDEV_CMD,
 };
 
 #define FLASHCACHEADDNCPID	_IOW(FLASHCACHE_IOCTL, FLASHCACHEADDNCPID_CMD, pid_t)
@@ -49,6 +50,8 @@ enum {
 #define FLASHCACHEADDWHITELIST		_IOW(FLASHCACHE_IOCTL, FLASHCACHEADDWHITELIST_CMD, pid_t)
 #define FLASHCACHEDELWHITELIST		_IOW(FLASHCACHE_IOCTL, FLASHCACHEDELWHITELIST_CMD, pid_t)
 #define FLASHCACHEDELALLWHITELIST	_IOW(FLASHCACHE_IOCTL, FLASHCACHEDELWHITELISTALL_CMD, pid_t)
+
+#define FLASHCACHEREPLACECACHEDEV       _IOW(FLASHCACHE_IOCTL, FLASHCACHEREPLACECACHEDEV_CMD, struct flash_superblock)
 
 #ifdef __KERNEL__
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,27)
@@ -65,6 +68,7 @@ void seq_io_remove_from_lru(struct cache_c *dmc, struct sequential_io *seqio);
 void seq_io_move_to_lruhead(struct cache_c *dmc, struct sequential_io *seqio);
 int skip_sequential_io(struct cache_c *dmc, struct bio *bio);
 void flashcache_del_all_pids(struct cache_c *dmc, int which_list, int force);
+int flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct flash_superblock sb);
 #endif /* __KERNEL__ */
 
 #endif

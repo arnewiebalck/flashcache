@@ -866,7 +866,7 @@ flashcache_clean_all_sets(struct work_struct *work)
 		flashcache_clean_set(dmc, i);
 }
 
-static int inline
+int inline 
 flashcache_get_dev(struct dm_target *ti, char *pth, struct dm_dev **dmd,
 		   char *dmc_dname, sector_t tilen)
 {
@@ -970,7 +970,7 @@ flashcache_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			r = -EINVAL;
 			goto bad3;
 		}
-		DMERR("persistence=%d", persistence);
+	        DMINFO("persistence = %d (1 = CACHE_LOAD, 2 = CACHE_CREATE, 3 = CACHE_FORCECREATE)", persistence);
 		if (persistence < CACHE_RELOAD || persistence > CACHE_FORCECREATE) {
 			DMERR("persistence = %d (1 = CACHE_LOAD, 2 = CACHE_CREATE, 3 = CACHE_FORCECREATE)", persistence);
 			ti->error = "flashcache: Invalid cache persistence";
