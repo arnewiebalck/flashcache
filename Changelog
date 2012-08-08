@@ -1,3 +1,7 @@
+3.1.0 -- 8 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Removed sysctls as they're not properly unregistered.
+
 3.0.0 -- 3 Aug 2012
 -----
 Arne.Wiebalck@cern.ch: Added capability to hot replace cache devices.

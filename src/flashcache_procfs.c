@@ -1060,10 +1060,13 @@ flashcache_ctr_procfs(struct cache_c *dmc)
 	}
 	kfree(s);
 
+	/* disable sysctls as no proper removal possible
+         * 	
 	if (dmc->cache_mode == FLASHCACHE_WRITE_BACK)
 		flashcache_writeback_sysctl_register(dmc);
 	else
 		flashcache_writethrough_sysctl_register(dmc);
+	*/
 }
 
 void 
@@ -1091,10 +1094,13 @@ flashcache_dtr_procfs(struct cache_c *dmc)
 	remove_proc_entry(s, NULL);
 	kfree(s);
 
+	/* disable sysctl as no proper removal
+         *    	
 	if (dmc->cache_mode == FLASHCACHE_WRITE_BACK)
 		flashcache_writeback_sysctl_unregister(dmc);
 	else
 		flashcache_writethrough_sysctl_unregister(dmc);
+	*/
 
 }
 
