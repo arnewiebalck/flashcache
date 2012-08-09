@@ -518,6 +518,11 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
 	/* set the cache into bypass mode */
 	DMINFO("set %s into bypass mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
 	dmc->bypass = 1;
+	
+	/* sleep 30 sec to let all pending IOs flow off */
+	DMINFO("sssleeping 30 secs to let IOs drain off ...");
+	ssleep(30);
+	DMINFO("... awake!");
 
 	/* replace the cache device */
 	DMINFO("swapping cache devices (%s <-> %s)", dmc->cache_devname, sb.cache_devname);	
@@ -569,7 +574,7 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
         dmc->size = (dmc->size / dmc->assoc) * dmc->assoc;
         order = dmc->size * sizeof(struct cacheblock);
 	cache_size = dmc->size * dmc->block_size;	
-        DMINFO("flashcache_replace_cachedev: allocate %luKB (%luB per) mem for %lu-entry cache" \
+        DMINFO("flashcache_replace_cachedev: need %luKB (%luB per) mem for %lu-entry cache" \
                "(capacity:%luMB, associativity:%u, block size:%u sectors(%uKB))",
                order >> 10, sizeof(struct cacheblock), dmc->size,
                cache_size >> (20-SECTOR_SHIFT), dmc->assoc, dmc->block_size,
@@ -602,6 +607,7 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
 	/* unset the bypass mode */
 	DMINFO("set %s into cache mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
 	dmc->bypass = 0;
+
 	return 0;
 }
 

@@ -1,6 +1,14 @@
+3.2.0 -- 9 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Remove cache devices SCSI-wise before replacement, 
+                       otherwise dm/flashcache will continue draining
+		       IOs to it and crash the kernel when the device is
+		       replaced.
+
 3.1.0 -- 8 Aug 2012
 -----
-Arne.Wiebalck@cern.ch: Removed sysctls as they're not properly unregistered.
+Arne.Wiebalck@cern.ch: Removed sysctls as they're not properly unregistered
+                       and can caused kernel OOPSes.
 
 3.0.0 -- 3 Aug 2012
 -----
