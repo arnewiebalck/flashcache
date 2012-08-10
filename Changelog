@@ -1,3 +1,7 @@
+3.2.1 -- 10 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Consistent logging mesages.
+
 3.2.0 -- 9 Aug 2012
 -----
 Arne.Wiebalck@cern.ch: Remove cache devices SCSI-wise before replacement, 
