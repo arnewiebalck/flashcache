@@ -516,16 +516,16 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
         struct dm_io_region where;
 #endif
 	/* set the cache into bypass mode */
-	DMINFO("set %s into bypass mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
+	DMINFO("flashcache_replace_cachedev: set %s into bypass mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
 	dmc->bypass = 1;
 	
 	/* sleep 30 sec to let all pending IOs flow off */
-	DMINFO("sssleeping 30 secs to let IOs drain off ...");
+	DMINFO("flashcache_replace_cachedev: sleeping 30 secs to let IOs drain off ...");
 	ssleep(30);
-	DMINFO("... awake!");
+	DMINFO("flashcache_replace_cachedev: ... awake!");
 
 	/* replace the cache device */
-	DMINFO("swapping cache devices (%s <-> %s)", dmc->cache_devname, sb.cache_devname);	
+	DMINFO("flashcache_replace_cachedev: swapping cache devices (%s <-> %s)", dmc->cache_devname, sb.cache_devname);	
 	flashcache_dtr_procfs(dmc);
 	dm_put_device(ti, dmc->cache_dev);
 	if ((r = flashcache_get_dev(ti, sb.cache_devname, &dmc->cache_dev,
@@ -582,7 +582,7 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
 	
 	/* (re-create and) initialize the cache structure */
 	if (dmc->size != old_size) {
-		DMINFO("flashcache_replace: allocating cache structure");
+		DMINFO("flashcache_replace_cachedev: allocating cache structure");
 		cb = dmc->cache;
 		dmc->cache = (struct cacheblock *)vmalloc(order);
         	if (!dmc->cache) {
@@ -591,7 +591,7 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
         	}
 		vfree((void *)cb);
 	} else {
-		DMINFO("flashcache_replace: re-using existing cache structure");
+		DMINFO("flashcache_replace_cachedev: re-using existing cache structure");
 	}
 
         for (i = 0; i < dmc->size ; i++) {
@@ -605,7 +605,7 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
         dmc->md_blocks = 0;
 
 	/* unset the bypass mode */
-	DMINFO("set %s into cache mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
+	DMINFO("flashcache_replace_cachedev: set %s into cache mode (SSD: %s)", dmc->dm_vdevname, dmc->cache_devname);
 	dmc->bypass = 0;
 
 	return 0;
