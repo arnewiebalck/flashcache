@@ -193,7 +193,7 @@ main(int argc, char **argv)
 	sb->cache_devsize = cache_devsize;
 
 	/* replace SSDs */
-	printf("Replacing SSDs in the kernel module ...\n");
+	printf("Replacing SSDs in the kernel module, please be patient (~1 min) ...\n");
         if (ioctl(cache_fd, FLASHCACHEREPLACECACHEDEV, sb) < 0) {
 		fprintf(stderr, "Replacement ioctl failed. Exiting.");
                 close(cache_fd);

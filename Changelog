@@ -1,3 +1,7 @@
+3.2.2 -- 10 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Clearer message to user in flashcache_replace.
+
 3.2.1 -- 10 Aug 2012
 -----
 Arne.Wiebalck@cern.ch: Consistent logging mesages.
