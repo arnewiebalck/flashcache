@@ -568,7 +568,7 @@ flashcache_replace_cachedev(struct dm_target *ti, struct cache_c *dmc, struct fl
         }
         vfree((void *)header);
 
-	/* handle new cache device size and initialize cache structure */
+	/* handle new cache device size */
         dmc->size -= dmc->md_block_size; /* for the superblock */
         dmc->size /= dmc->block_size;    /* change from sectors to blocks */
         dmc->size = (dmc->size / dmc->assoc) * dmc->assoc;
