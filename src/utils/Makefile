@@ -1,6 +1,6 @@
 COMMIT_REV ?= $(shell git describe  --always --abbrev=12)
 CFLAGS += -I.. -I. -DCOMMIT_REV="\"$(COMMIT_REV)\"" -g
-PROGRAMS += flashcache_create flashcache_destroy flashcache_load flashcache_replace
+PROGRAMS += flashcache_create flashcache_destroy flashcache_load flashcache_replace flashcache_setioctl
 INSTALL_DIR = $(DESTDIR)/sbin/
 
 .PHONY:all
@@ -25,6 +25,11 @@ flashcache_replace: flashcache_replace.o
 	$(CC) $^ -o $@
 
 -include flashcache_replace.d
+
+flashcache_setioctl: flashcache_setioctl.o
+	$(CC) $^ -o $@
+
+-include flashcache_setioctl.d
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $*.c -o $*.o

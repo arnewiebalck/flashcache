@@ -1,3 +1,8 @@
+3.3.2 -- 10 Sep 2012
+-----
+Arne.Wiebalck@cern.ch: Added flashcache_setioctl to ease volserver
+                       blacklisting.
+
 3.2.2 -- 10 Aug 2012
 -----
 Arne.Wiebalck@cern.ch: Clearer message to user in flashcache_replace.
