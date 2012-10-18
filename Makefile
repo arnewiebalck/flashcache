@@ -1,5 +1,5 @@
 #COMMIT_REV := $(shell git describe  --always --abbrev=12)
-COMMIT_REV=cern.3.3.2
+COMMIT_REV=cern.3.4.0
 KERNEL_TREE ?= /lib/modules/$(shell uname -r)/build
 export COMMIT_REV
 
