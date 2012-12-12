@@ -1,4 +1,5 @@
-COMMIT_REV := $(shell git describe  --always --abbrev=12)
+#COMMIT_REV := $(shell git describe  --always --abbrev=12)
+COMMIT_REV=cern.4.0.0
 KERNEL_TREE ?= /lib/modules/$(shell uname -r)/build
 export COMMIT_REV
 
@@ -24,3 +25,6 @@ install:
 
 clean:
 	$(MAKE) -C src KERNEL_TREE=$(KERNEL_TREE) PWD=$(shell pwd)/src clean
+
+tarball:
+	tar cvfz flashcache.$(COMMIT_REV).tar.gz *

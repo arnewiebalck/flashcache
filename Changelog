@@ -1,0 +1,46 @@
+3.4.0 -- 18 Oct 2012
+-----
+Arne.Wiebalck@cern.ch: Ignore chache hits if SSD bypassed.
+
+3.3.2 -- 10 Sep 2012
+-----
+Arne.Wiebalck@cern.ch: Added flashcache_setioctl to ease volserver
+                       blacklisting.
+
+3.2.2 -- 10 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Clearer message to user in flashcache_replace.
+
+3.2.1 -- 10 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Consistent logging mesages.
+
+3.2.0 -- 9 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Remove cache devices SCSI-wise before replacement, 
+                       otherwise dm/flashcache will continue draining
+		       IOs to it and crash the kernel when the device is
+		       replaced.
+
+3.1.0 -- 8 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Removed sysctls as they're not properly unregistered
+                       and can caused kernel OOPSes.
+
+3.0.0 -- 3 Aug 2012
+-----
+Arne.Wiebalck@cern.ch: Added capability to hot replace cache devices.
+                       See src/utils/flashcache_replace.
+
+2.0.1 -- 24 May 2012
+-----
+Arne.Wiebalck@cern.ch: Addded Changelog. 
+
+2.0.0 
+-----
+Arne Wiebalck@cern.ch: Added wt superblock (at the end of the cache device).
+                       Introduced version numbers (major.minor.revision).
+
+1.0.0
+-----
+Arne.Wiebalck@cern.ch: Added BYPASS mode.
