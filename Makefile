@@ -24,3 +24,6 @@ install:
 
 clean:
 	$(MAKE) -C src KERNEL_TREE=$(KERNEL_TREE) PWD=$(shell pwd)/src clean
+
+tarball:
+	tar cvfz flashcache.cern.$(COMMIT_REV).tar.gz *
