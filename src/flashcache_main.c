@@ -187,9 +187,10 @@ flashcache_io_callback(unsigned long error, void *context)
 	VERIFY(bio != NULL);
 	if (unlikely(error)) {
 		error = -EIO;
-		DMERR("flashcache_io_callback: io error %ld block %lu action %d", 
-		      error, job->job_io_regions.disk.sector, job->action);
 		if (!dmc->bypass_cache && dmc->cache_mode != FLASHCACHE_WRITE_BACK) {
+                	DMERR("flashcache_io_callback: io error %ld block %lu action %d",
+                      	      error, job->job_io_regions.disk.sector, job->action);
+
 			DMERR("flashcache_io_callback: switching %s to BYPASS mode",
 			      dmc->cache_devname);
 			dmc->bypass_cache = 1;
