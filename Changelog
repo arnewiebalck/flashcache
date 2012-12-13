@@ -1,3 +1,7 @@
+4.0.0 -- 13 Dec 2012
+-----
+Arne.Wiebalck@cern.ch: Rebase on current facebook/flashcache git repo.
+
 3.4.0 -- 18 Oct 2012
 -----
 Arne.Wiebalck@cern.ch: Ignore chache hits if SSD bypassed.
